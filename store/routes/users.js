@@ -7,14 +7,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const {registerValidate} = require('./../util/helpers.js')
 
-router.get('/register', (req, res) => {
-	res.render('register')
-})
-
-router.get('/login', (req, res) => {
-	res.send(req.headers)
-})
-
 router.get('/check', (req, res) => {
 	if(req.headers['authorization']){
 		res.send({
@@ -29,12 +21,6 @@ router.get('/check', (req, res) => {
 	}
 })
 
-router.get('/dashboard', (req, res) => {
-	console.log(req)
-	console.log(req.session)
-	console.log(req.sessionID)
-	res.render('dashboard', {user: req.session.user})
-})
 
 router.post('/register', async (req, res) => {
 
@@ -93,26 +79,6 @@ router.post('/login', async (req, res) => {
 	} catch (err) {
 		console.log('something went wrong')
 	}
-})
-
-
-
-router.get('/logout', (req, res) => {
-	try{
-		const user = req.session.user
-		if(user) {
-			req.session.destroy( err=> {
-				if (err) throw (err);
-
-				res.clearCookie(process.env.SESS_NAME);
-				res.send(`${user.username} has logged out`)
-			})
-		}
-	} catch (err) {
-		res.status(422).send(parseError(err));
-	}
-    // req.flash('info', 'You are logged out! Consider loggin in')
-    // res.redirect('/');
 })
 
 module.exports = router
