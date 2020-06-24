@@ -3,6 +3,8 @@ const router = Router()
 
 const { pool } = require('./../dbConfig')
 
+const auth = require('./../middleware/auth.js')
+
 router.get('/categories', async (req, res) => {
 	const { rows } = await pool.query('SELECT * FROM categories')
 	const { rows: rowsProduct } = await pool.query('SELECT * FROM products')
@@ -65,7 +67,7 @@ router.delete('/', async(req, res) => {
 	})
 })
 
-router.post('/addToFavorites', async(req, res) => {
+router.post('/addToFavorites',auth, async(req, res) => {
 	const {user_id, product_id} = req.body
 
 	const {rows} = await pool.query(`INSERT INTO favorites (user_id, product_id) VALUES ($1, $2) RETURNING user_id, product_id`, [user_id, product_id])
@@ -75,7 +77,7 @@ router.post('/addToFavorites', async(req, res) => {
 	})
 })
 
-router.post('/favorites', async(req, res) => {
+router.post('/favorites', auth, async(req, res) => {
 	const { user_id } = req.body
 
 	const { rows } = await pool.query('SELECT * FROM favorites WHERE user_id = $1',[user_id])

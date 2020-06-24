@@ -5,13 +5,6 @@ const session = require('express-session')
 
 const pgSession = require('connect-pg-simple')(session);
 require('dotenv').config();
-
-var cron = require('node-cron');
- 
-cron.schedule('*/10 * * * *', async () => {
-	result = await pool.query("DELETE FROM sessions WHERE created_date < NOW() - INTERVAL '10 minutes'")
-  	console.log('deleted old sessions');
-});
  
 const port = process.env.PORT || 4000;
 
@@ -34,14 +27,11 @@ app.use(session({
 }))
 
 
+
 const users = require('./routes/users.js')
 const products = require('./routes/products.js')
 app.use('/users', users)
 app.use('/products', products)
-
-app.get('/', (req, res) => {
-	res.render('index') 
-})
 
   
 app.listen(port, ()=>{

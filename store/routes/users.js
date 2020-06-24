@@ -4,81 +4,45 @@ const router = Router()
 const { pool } = require('./../dbConfig')
 const bcrypt = require('bcrypt')
 const { v4: uuidv4 } = require('uuid');
+const needle = require('needle');
+
 
 const {registerValidate} = require('./../util/helpers.js')
 
-router.get('/check', (req, res) => {
+router.get('/check', async (req, res) => {
 	if(req.headers['authorization']){
-		res.send({
-			message: 'there is a key',
-			src: req.headers
-		})
+		const data = { session_key: req.headers['authorization'] };
+		const respond = await needle('post', 'http://localhost:5000/auth/check', data, {json: true})
+		
+		if(respond.body.userid){
+			res.send({ message: 'you can access now everything'})
+		} else {
+			res.send({ data: respond.body })
+		}
+
 	} else {
 		res.send({
-			message: 'there is no key',
-			src: req.headers
+			message: 'Please write session_key',
 		})
 	}
 })
 
 
 router.post('/register', async (req, res) => {
-
-	let { username, password, password2 } = req.body
-	const errors = registerValidate(username, password, password2)
-
-	if(errors.length > 0) {
-		res.send({errors})
-	} else {
-		//hashing the password
-		const hashedPassword = await bcrypt.hash(password, 10)
-
-		//check if username already exists in db
-		const { rows } = await pool.query('SELECT * FROM users WHERE username = $1',[username])
-		if (rows.length>0){
-			res.send('user already exists')
-		} else {
-			const result = await pool.query(`INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, password`, [username, hashedPassword])
-			res.send({
-				message: 'user created',
-				user: result.rows[0]
-			})
-		}
-
-	}
+	const data = req.body
+	const respond = await needle('post', 'http://localhost:5000/auth/register', data, {json: true})
+	res.send({
+		data: respond.body
+	})
 })
 
 
 router.post('/login', async (req, res) => {
-	try {
-		  const password = req.body.password
-		  const username = req.body.username
-
-		  const { rows } = await pool.query('SELECT * FROM users WHERE username = $1',[username])
-		  if (rows.length>0) {
-		  	const user = rows[0]
-		  	const isMatch = await bcrypt.compare(password, user.password)
-		  	if(isMatch){
-		  		const session_key = uuidv4();
-
-		  		const result = await pool.query(`INSERT INTO sessions (userid, session_key) VALUES ($1, $2) RETURNING userid, session_key`, [user.id, session_key])
-		  		const ses = result.rows[0]
-
-		  		res.send({
-		  			message: 'user logged in',
-		  			user:user,
-		  			key: session_key,
-		  			ses: ses
-		  		})
-		  	} else {
-		  		res.send('the passwords do not match')
-		  	}
-		  } else {
-		  	res.send('email is not registered')
-		  }
-	} catch (err) {
-		console.log('something went wrong')
-	}
+	const data = req.body
+	const respond = await needle('post', 'http://localhost:5000/auth/login', data, {json: true})
+	res.send({
+		data: respond.body
+	})
 })
 
 module.exports = router
