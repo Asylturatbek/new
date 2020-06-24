@@ -3,21 +3,29 @@ const router = Router()
 
 const { pool } = require('./../dbConfig')
 const bcrypt = require('bcrypt')
+const { v4: uuidv4 } = require('uuid');
+
+const {registerValidate} = require('./../util/helpers.js')
 
 router.get('/register', (req, res) => {
 	res.render('register')
 })
 
 router.get('/login', (req, res) => {
-	console.log(req.user)
-	res.render('login')
+	res.send(req.headers)
 })
 
 router.get('/check', (req, res) => {
-	if(req.session.user){
-		res.send(req.session.user)
+	if(req.headers['authorization']){
+		res.send({
+			message: 'there is a key',
+			src: req.headers
+		})
 	} else {
-		res.send('not logged in')
+		res.send({
+			message: 'there is no key',
+			src: req.headers
+		})
 	}
 })
 
@@ -31,94 +39,59 @@ router.get('/dashboard', (req, res) => {
 router.post('/register', async (req, res) => {
 
 	let { username, password, password2 } = req.body
+	const errors = registerValidate(username, password, password2)
 
-	let errors = [];
-
-	if(!username || !password || !password2){
-		errors.push({message: "Please enter all fields."})
-	}
-	if(password.length < 6){
-		errors.push({message: 'Password should be at lease 6 characters.'})
-	}
-	if(password != password2){
-		errors.push({message: 'Passwords do not match.'})
-	}
 	if(errors.length > 0) {
-		res.render('register', {errors})
+		res.send({errors})
 	} else {
 		//hashing the password
 		const hashedPassword = await bcrypt.hash(password, 10)
-		console.log(hashedPassword)
 
 		//check if username already exists in db
-		pool.query('SELECT * FROM users WHERE username = $1',[username], (err, result) => {
-		  if (err) {
-		    console.log(err)
-		  }
-		  console.log('user:', result.rows)
-		  console.log('in register route')
-		  if(result.rows.length>0){
-		  	console.log('user already exists')
-		  	errors.push({message: 'User already exists with this username'})
-		  	res.render('register', { errors })
-		  } else {
-		  	pool.query(
-		  		`INSERT INTO users (username, password)
-		  		VALUES ($1, $2)
-		  		RETURNING id, password`, [username, hashedPassword],
-		  		(err, results) => {
-		  			if (err) {
-		  				console.log(err)
-		  				throw err;
-		  			}
-		  			console.log(results.rows);
-		  			req.flash("success_msg", 'You are now registered. Please log in!')
-		  			res.redirect('/users/login')
-		  		}
-		  		)
-		  	console.log('successfully created user')
-		  }
-		})
+		const { rows } = await pool.query('SELECT * FROM users WHERE username = $1',[username])
+		if (rows.length>0){
+			res.send('user already exists')
+		} else {
+			const result = await pool.query(`INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, password`, [username, hashedPassword])
+			res.send({
+				message: 'user created',
+				user: result.rows[0]
+			})
+		}
 
 	}
 })
 
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
 	try {
 		  const password = req.body.password
 		  const username = req.body.username
-	      pool.query('SELECT * FROM users WHERE username = $1',[username], (err, result) => {
-	        if (err) {
-	          console.log(err)
-	        }
-	        console.log('we are in login route')
 
-	        if(result.rows.length>0){
-	          //user exists
-	          const user = result.rows[0]
+		  const { rows } = await pool.query('SELECT * FROM users WHERE username = $1',[username])
+		  if (rows.length>0) {
+		  	const user = rows[0]
+		  	const isMatch = await bcrypt.compare(password, user.password)
+		  	if(isMatch){
+		  		const session_key = uuidv4();
 
-	          bcrypt.compare(password, user.password, (err, isMatch) => {
-	            if (err) throw err;
-	            if (isMatch) {
-	              req.session.user = {
-	              	userId: user.id,
-	              	username: user.username
-	              }
-	              const session_id = req.sessionID
-	              res.send(user)
-	            } else {
-	              res.send('the password does not match')
-	            }
-	          });
+		  		const result = await pool.query(`INSERT INTO sessions (userid, session_key) VALUES ($1, $2) RETURNING userid, session_key`, [user.id, session_key])
+		  		const ses = result.rows[0]
 
-	        } else {
-	          res.send('email is not registered')
-	        }
-	      })		
+		  		res.send({
+		  			message: 'user logged in',
+		  			user:user,
+		  			key: session_key,
+		  			ses: ses
+		  		})
+		  	} else {
+		  		res.send('the passwords do not match')
+		  	}
+		  } else {
+		  	res.send('email is not registered')
+		  }
 	} catch (err) {
 		console.log('something went wrong')
-		console.log(err)
 	}
 })
 
