@@ -8,17 +8,21 @@ const { v4: uuidv4 } = require('uuid');
 const {registerValidate} = require('./../util/helpers.js')
 
 router.post('/check', async (req, res) => {
-	const {session_key} = req.body
+	try {
+		const {session_key} = req.body 
 
-	esult = await pool.query("DELETE FROM sessions WHERE created_date < NOW() - INTERVAL '10 minutes'")
-	const { rows } = await pool.query('SELECT * FROM sessions WHERE session_key = $1',[session_key])
-	
-	if (rows.length>0){
-		res.send(rows[0])
-	} else {
-		res.send({
-			message: 'You have to login'
-		})
+		result = await pool.query("DELETE FROM sessions WHERE created_date < NOW() - INTERVAL '10 minutes'") 
+		const { rows } = await pool.query('SELECT * FROM sessions WHERE session_key = $1',[session_key])
+		
+		if (rows.length>0){
+			res.send(rows[0])
+		} else {
+			res.send({
+				message: 'You have to login'
+			})
+		}
+	} catch (err) {
+		console.log(err)
 	}
 })
 

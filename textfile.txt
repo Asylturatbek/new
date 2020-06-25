@@ -1,0 +1,62 @@
+docker run -p 8000:8000 postgres
+
+docker run -v /opt/datadir:/var/lib/mysql mysql
+
+docker inspect blissful_hopper
+
+docker run -e APP_COLOR=blue simple-webapp-color
+
+docker network create \
+	--driver bridge \
+	--subnet 182.18.0.0/16
+	custom-isolated-network
+
+docker network ls
+
+docker volume create data_volume
+
+docker run -v data_volume:/var/lib/mysql mysql
+
+
+create table users (
+id bigserial,
+username varchar(200) not null,
+password varchar(200) not null,
+primary key (id)
+);
+
+create table categories (
+id serial,
+name varchar(200) not null,
+primary key (id)
+);
+
+create table products (
+id serial,
+name varchar (200) not null,
+category_id int not null,
+primary key (id),
+foreign key (category_id) references categories(id) on delete cascade
+);
+
+create table favorites (
+user_id int not null,
+product_id int not null,
+primary key (user_id, product_id),
+foreign key (user_id) references users(id) on update cascade,
+foreign key (product_id) references products(id) on update cascade
+);
+
+create table sessions (
+sessionid serial,
+userid int not null,
+session_key varchar (200) not null,
+created_date timestamp with time zone default current_timestamp,
+primary key (sessionid),
+constraint fk_userid foreign key (userid) references users (id)
+);
+
+
+sudo docker run -d --name auth_part -p 5000:5000 --network my-net --env-file ./.env asyl/auth-app2 
+sudo docker run -d --name store_part -p 4000:4000 --network my-net --env-file ./.env asyl/store-app
+sudo docker run -d --name personal-pg -p 5432:5432 --network my-net -v /opt/volumes/personal-pg:/var/lib/personal-pg postgres:10.4 

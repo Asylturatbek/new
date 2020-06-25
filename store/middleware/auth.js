@@ -3,7 +3,7 @@ const needle = require('needle');
 module.exports = async function (req, res, next) {
 	if(req.headers['authorization']){
 		const data = { session_key: req.headers['authorization'] };
-		const respond = await needle('post', 'http://localhost:5000/auth/check', data, {json: true})
+		const respond = await needle('post', 'http://auth_part:5000/auth/check', data, {json: true})
 		
 		if(respond.body.userid){
 			next()

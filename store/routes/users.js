@@ -12,7 +12,7 @@ const {registerValidate} = require('./../util/helpers.js')
 router.get('/check', async (req, res) => {
 	if(req.headers['authorization']){
 		const data = { session_key: req.headers['authorization'] };
-		const respond = await needle('post', 'http://localhost:5000/auth/check', data, {json: true})
+		const respond = await needle('post', 'http://auth_part:5000/auth/check', data, {json: true})
 		
 		if(respond.body.userid){
 			res.send({ message: 'you can access now everything'})
@@ -30,7 +30,7 @@ router.get('/check', async (req, res) => {
 
 router.post('/register', async (req, res) => {
 	const data = req.body
-	const respond = await needle('post', 'http://localhost:5000/auth/register', data, {json: true})
+	const respond = await needle('post', 'http://auth_part:5000/auth/register', data, {json: true})
 	res.send({
 		data: respond.body
 	})
@@ -39,7 +39,7 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
 	const data = req.body
-	const respond = await needle('post', 'http://localhost:5000/auth/login', data, {json: true})
+	const respond = await needle('post', 'http://auth_part:5000/auth/login', data, {json: true})
 	res.send({
 		data: respond.body
 	})
