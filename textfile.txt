@@ -57,6 +57,66 @@ constraint fk_userid foreign key (userid) references users (id)
 );
 
 
+INSERT INTO categories (name)
+VALUES
+('Computers'),
+('Mobile phones'),
+('Entertainment equipment'),
+('Cameras'),
+('Household furniture'),
+('Washing machines and dishwashers'),
+('Clothing'),
+('Sports equipment'),
+('Kitchen utensils – plates, pots and pans'),
+('Choice of restaurants'),
+('Hotels and airlines'),
+('Luggage'),
+('Getting a pet'),
+('Hairdresser and beautician'),
+('Car repairs'),
+('Plants for the yard'),
+('Perfumes and cosmetics'),
+('Running shoes'),
+('Everyday jewelry'),
+('Kid’s bicycles')
+
+
 sudo docker run -d --name auth_part -p 5000:5000 --network my-net --env-file ./.env asyl/auth-app2 
 sudo docker run -d --name store_part -p 4000:4000 --network my-net --env-file ./.env asyl/store-app
 sudo docker run -d --name personal-pg -p 5432:5432 --network my-net -v /opt/volumes/personal-pg:/var/lib/personal-pg postgres:10.4 
+
+
+cat << EOF > pg-env.list
+PG_MODE=primary
+PG_PRIMARY_USER=postgres
+PG_PRIMARY_PASSWORD=password
+PG_DATABASE=my_db
+PG_USER=asyl
+PG_PASSWORD=password
+PG_ROOT_PASSWORD=password
+PG_PRIMARY_PORT=5432
+EOF
+
+cat << EOF > pgadmin-env.list
+PGADMIN_SETUP_EMAIL=asylturatbek
+PGADMIN_SETUP_PASSWORD=password
+SERVER_PORT=5050
+EOF
+
+docker run --publish 5432:5432 \
+  --volume=postgres:/pgdata \
+  --env-file=pg-env.list \
+  --name="postgres" \
+  --hostname="postgres" \
+  --network="pgnetwork" \
+  --detach \
+registry.developers.crunchydata.com/crunchydata/crunchy-postgres:centos7-12.2-4.2.2
+
+sudo docker run --publish 5050:5050 \
+  --volume=pgadmin4:/var/lib/pgadmin \
+  --env-file=pgadmin-env.list \
+  --name="pgadmin4" \
+  --hostname="pgadmin4" \
+  --network="my-net" \
+  --detach \
+registry.developers.crunchydata.com/crunchydata/crunchy-pgadmin4:centos7-12.2-4.2.2
